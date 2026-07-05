@@ -46,6 +46,7 @@ from market_agents.data_sources.coingecko import (
     fetch_market_data,
 )
 from market_agents.data_sources.fred import FredError, obtener_contexto_macro
+from market_agents.data_sources.symbol_search import SymbolSearchError, buscar_simbolos
 from market_agents.data_sources.yahoo_finance import YahooFinanceError, fetch_intraday
 from market_agents.data_sources.yahoo_news import YahooNewsError, fetch_news
 from market_agents.signal_agent import generar_señal
@@ -135,6 +136,22 @@ def _obtener_contexto_macro_cacheado() -> list[dict[str, Any]]:
         # lista vacía — el análisis LLM sigue siendo válido sin macro,
         # solo con menos contexto (se documenta así en el propio prompt).
         return _macro_cache["datos"] or []
+
+
+@app.get("/search")
+def search(
+    q: str = Query(..., min_length=1, description="Nombre o símbolo a buscar, ej. 'apple', 'bitcoin', 'AAPL'"),
+    limit: int = Query(8, ge=1, le=20),
+) -> dict[str, Any]:
+    """
+    Buscador de activos REAL por nombre o símbolo (Yahoo Finance Search),
+    para que el usuario no necesite conocer el ticker exacto de antemano.
+    """
+    try:
+        resultados = buscar_simbolos(q, max_resultados=limit)
+        return {"query": q, "resultados": [asdict(r) for r in resultados]}
+    except SymbolSearchError as exc:
+        raise HTTPException(status_code=502, detail=f"buscador_de_simbolos: {exc}") from exc
 
 
 @app.get("/macro")

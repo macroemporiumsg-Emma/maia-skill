@@ -33,6 +33,8 @@ const ZONAS = [
   { desde: 60, hasta: 100, color: "#16a34a" }, // compra fuerte
 ]
 
+const GAP_DEG = 1.2 // pequeño hueco visual entre zonas del arco
+
 // Arco semicircular: de 180° (izquierda, -100) a 0° (derecha, +100).
 function puntuacionAAngulo(puntuacion: number): number {
   const clamped = Math.max(-100, Math.min(100, puntuacion))
@@ -55,24 +57,33 @@ function describirArco(cx: number, cy: number, radio: number, anguloInicio: numb
   return `M ${inicio.x} ${inicio.y} A ${radio} ${radio} 0 ${largo} 1 ${fin.x} ${fin.y}`
 }
 
-export function Barometer({ puntuacion, etiqueta, subetiqueta, className, size = 220 }: BarometerProps) {
+export function Barometer({ puntuacion, etiqueta, subetiqueta, className, size = 200 }: BarometerProps) {
   const cx = size / 2
   const cy = size / 2
-  const radioArco = size * 0.42
-  const grosorArco = size * 0.09
+  const radioArco = size * 0.4
+  const grosorArco = size * 0.1
 
   const anguloAguja = puntuacionAAngulo(puntuacion)
-  const puntaAguja = puntoEnArco(cx, cy, radioArco - grosorArco * 0.6, anguloAguja)
+  const puntaAguja = puntoEnArco(cx, cy, radioArco - grosorArco * 0.55, anguloAguja)
+  const colaAguja = puntoEnArco(cx, cy, size * 0.06, anguloAguja + 180)
 
   const colorAguja =
     puntuacion >= 20 ? "#16a34a" : puntuacion <= -20 ? "#dc2626" : "#71717a"
 
+  const uid = `bar-${Math.round((puntuacion + 100) * 97)}`
+
   return (
     <div className={cn("flex flex-col items-center", className)}>
-      <svg width={size} height={size * 0.62} viewBox={`0 0 ${size} ${size * 0.58}`}>
+      <svg width={size} height={size * 0.6} viewBox={`0 0 ${size} ${size * 0.56}`}>
+        <defs>
+          <filter id={`${uid}-shadow`} x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodOpacity="0.25" />
+          </filter>
+        </defs>
+
         {ZONAS.map((zona) => {
-          const anguloInicio = puntuacionAAngulo(zona.desde)
-          const anguloFin = puntuacionAAngulo(zona.hasta)
+          const anguloInicio = puntuacionAAngulo(zona.desde) - (zona.desde === -100 ? 0 : GAP_DEG / 2)
+          const anguloFin = puntuacionAAngulo(zona.hasta) + (zona.hasta === 100 ? 0 : GAP_DEG / 2)
           return (
             <path
               key={zona.color}
@@ -80,47 +91,62 @@ export function Barometer({ puntuacion, etiqueta, subetiqueta, className, size =
               fill="none"
               stroke={zona.color}
               strokeWidth={grosorArco}
-              strokeLinecap="butt"
-              opacity={0.85}
+              strokeLinecap="round"
+              opacity={0.9}
             />
           )
         })}
 
         {/* Aguja */}
-        <line
-          x1={cx}
-          y1={cy}
-          x2={puntaAguja.x}
-          y2={puntaAguja.y}
-          stroke={colorAguja}
-          strokeWidth={size * 0.018}
-          strokeLinecap="round"
-        />
-        <circle cx={cx} cy={cy} r={size * 0.03} fill={colorAguja} />
+        <g filter={`url(#${uid}-shadow)`}>
+          <line
+            x1={colaAguja.x}
+            y1={colaAguja.y}
+            x2={puntaAguja.x}
+            y2={puntaAguja.y}
+            stroke={colorAguja}
+            strokeWidth={size * 0.02}
+            strokeLinecap="round"
+          />
+          <circle cx={cx} cy={cy} r={size * 0.035} fill="white" stroke={colorAguja} strokeWidth={size * 0.014} />
+        </g>
 
         {/* Etiquetas de extremos */}
-        <text x={cx - radioArco - grosorArco * 0.2} y={cy + size * 0.06} fontSize={size * 0.045} fill="currentColor" opacity={0.55} textAnchor="start">
+        <text
+          x={cx - radioArco - grosorArco * 0.15}
+          y={cy + size * 0.075}
+          fontSize={size * 0.04}
+          fontWeight={600}
+          fill="currentColor"
+          opacity={0.4}
+          textAnchor="start"
+          letterSpacing="0.05em"
+        >
           VENDER
         </text>
-        <text x={cx + radioArco + grosorArco * 0.2} y={cy + size * 0.06} fontSize={size * 0.045} fill="currentColor" opacity={0.55} textAnchor="end">
+        <text
+          x={cx + radioArco + grosorArco * 0.15}
+          y={cy + size * 0.075}
+          fontSize={size * 0.04}
+          fontWeight={600}
+          fill="currentColor"
+          opacity={0.4}
+          textAnchor="end"
+          letterSpacing="0.05em"
+        >
           COMPRAR
         </text>
       </svg>
 
-      <div className="-mt-1 flex flex-col items-center">
-        <span
-          className="text-xl font-bold tracking-wide"
-          style={{ color: colorAguja }}
-        >
+      <div className="-mt-0.5 flex flex-col items-center">
+        <span className="text-2xl font-bold tracking-tight" style={{ color: colorAguja }}>
           {etiqueta.toUpperCase()}
         </span>
-        <span className="font-mono text-sm text-muted-foreground">
+        <span className="font-mono text-sm font-medium text-muted-foreground">
           {puntuacion > 0 ? "+" : ""}
           {puntuacion.toFixed(1)}
         </span>
-        {subetiqueta && (
-          <span className="text-xs text-muted-foreground/70">{subetiqueta}</span>
-        )}
+        {subetiqueta && <span className="text-xs text-muted-foreground/70">{subetiqueta}</span>}
       </div>
     </div>
   )
