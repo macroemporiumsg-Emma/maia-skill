@@ -32,6 +32,7 @@ import time
 from dataclasses import asdict
 from typing import Any, Optional
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -47,10 +48,13 @@ from market_agents.data_sources.coingecko import (
 )
 from market_agents.data_sources.fred import FredError, obtener_contexto_macro
 from market_agents.data_sources.symbol_search import SymbolSearchError, buscar_simbolos
-from market_agents.data_sources.yahoo_finance import YahooFinanceError, fetch_intraday
+from market_agents.data_sources.yahoo_finance import (
+    YahooFinanceError,
+    fetch_intraday_suficiente,
+)
 from market_agents.data_sources.yahoo_news import YahooNewsError, fetch_news
 from market_agents.signal_agent import generar_señal
-from market_agents.technical_engine import calcular_indicadores
+from market_agents.technical_engine import calcular_indicadores, ema
 
 KERNEL_NAME = "market-agent-signals"
 KERNEL_VERSION = "2.0.0"
@@ -85,10 +89,12 @@ def health() -> dict[str, Any]:
 
 def _generar_señal_simbolo(symbol: str, interval: str, range_: str) -> dict[str, Any]:
     try:
-        df = fetch_intraday(symbol, interval=interval, range_=range_)
+        df = fetch_intraday_suficiente(symbol, interval=interval, range_=range_)
         indicadores = calcular_indicadores(df)
         señal = generar_señal(symbol, indicadores)
-        return {"ok": True, "data": asdict(señal)}
+        data = asdict(señal)
+        data["rango_usado"] = df.attrs.get("range_usado", range_)
+        return {"ok": True, "data": data}
     except YahooFinanceError as exc:
         return {"ok": False, "symbol": symbol, "error": f"fuente_de_datos: {exc}"}
     except ValueError as exc:
@@ -175,15 +181,20 @@ async def _construir_analisis_causal(symbol: str, interval: str, range_: str) ->
     la señal técnica es estrictamente necesaria. Esto se documenta
     explícitamente en la respuesta (`fuentes_disponibles`).
     """
-    # 1. Señal técnica (obligatoria: sin esto no hay análisis posible)
+    # 1. Señal técnica (obligatoria: sin esto no hay análisis posible).
+    # Usa fetch_intraday_suficiente: si el rango solicitado no trae al
+    # menos 30 velas (p. ej. futuros como MNQ=F en range="1d"), reintenta
+    # automáticamente con rangos más amplios (5d, 1mo) antes de fallar.
     try:
-        df = await asyncio.to_thread(fetch_intraday, symbol, interval=interval, range_=range_)
+        df = await asyncio.to_thread(fetch_intraday_suficiente, symbol, interval, range_)
         indicadores = calcular_indicadores(df)
         señal = generar_señal(symbol, indicadores)
     except YahooFinanceError as exc:
         raise HTTPException(status_code=502, detail=f"fuente_de_datos: {exc}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=502, detail=f"datos_insuficientes: {exc}") from exc
+
+    rango_usado = df.attrs.get("range_usado", range_)
 
     # 2. Fuentes secundarias, en paralelo, tolerantes a fallo individual.
     async def _macro_segura() -> list[dict[str, Any]]:
@@ -232,6 +243,69 @@ async def _construir_analisis_causal(symbol: str, interval: str, range_: str) ->
             "yahoo_finance_noticias": len(noticias) > 0,
             "coingecko_cripto": datos_cripto is not None,
         },
+        "rango_solicitado": range_,
+        "rango_usado": rango_usado,
+        "generado_en_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+
+@app.get("/candles")
+def candles(
+    symbol: str = Query(..., description="Ticker Yahoo Finance, ej. AAPL, BTC-USD, MNQ=F"),
+    interval: str = Query("5m", description="Intervalo de vela: 1m, 5m, 15m, 1h, 1d..."),
+    range: str = Query("1d", description="Rango histórico a traer: 1d, 5d, 1mo..."),
+) -> dict[str, Any]:
+    """
+    Serie OHLCV REAL cruda (sin sintetizar), para renderizar un gráfico de
+    velas estilo TradingView/MetaTrader en el frontend. Incluye EMA9/EMA21
+    precalculadas por vela (mismas fórmulas que technical_engine) para
+    dibujarlas como overlay, y metadatos de sesión/rango (52w high/low,
+    rango solicitado vs. usado) para dar contexto adicional al gráfico.
+
+    Usa el mismo fallback automático de rango que /analysis: si el rango
+    solicitado no trae suficientes velas (p. ej. futuros como MNQ=F en
+    range="1d"), amplía automáticamente a 5d/1mo.
+    """
+    try:
+        df = fetch_intraday_suficiente(symbol, interval=interval, range_=range, min_velas=1)
+    except YahooFinanceError as exc:
+        raise HTTPException(status_code=502, detail=f"fuente_de_datos: {exc}") from exc
+
+    if len(df) == 0:
+        raise HTTPException(status_code=502, detail=f"datos_insuficientes: '{symbol}' no devolvió velas")
+
+    cierre = df["close"].astype(float)
+    ema9_serie = ema(cierre, 9) if len(df) >= 2 else cierre
+    ema21_serie = ema(cierre, 21) if len(df) >= 2 else cierre
+
+    velas = [
+        {
+            "tiempo": int(ts),
+            "apertura": round(float(o), 6),
+            "maximo": round(float(h), 6),
+            "minimo": round(float(l), 6),
+            "cierre": round(float(c), 6),
+            "volumen": int(v) if pd.notna(v) else 0,
+            "ema9": round(float(e9), 6) if pd.notna(e9) else None,
+            "ema21": round(float(e21), 6) if pd.notna(e21) else None,
+        }
+        for ts, o, h, l, c, v, e9, e21 in zip(
+            df["timestamp"], df["open"], df["high"], df["low"], df["close"], df["volume"],
+            ema9_serie, ema21_serie,
+        )
+    ]
+
+    return {
+        "simbolo": symbol,
+        "intervalo": interval,
+        "rango_solicitado": range,
+        "rango_usado": df.attrs.get("range_usado", range),
+        "moneda": df.attrs.get("currency"),
+        "bolsa": df.attrs.get("exchange"),
+        "precio_mercado_regular": df.attrs.get("regular_market_price"),
+        "maximo_52_semanas": df.attrs.get("fifty_two_week_high"),
+        "minimo_52_semanas": df.attrs.get("fifty_two_week_low"),
+        "velas": velas,
         "generado_en_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 

@@ -82,6 +82,70 @@ def fetch_intraday(
     )
 
 
+# Orden de rangos a probar cuando el rango solicitado no trae suficientes
+# velas para indicadores estables (p. ej. futuros como MNQ=F, cuya sesión
+# intradía reportada por Yahoo en range="1d" puede traer solo ~15 velas de
+# 5m en vez de las ~78 esperadas de una sesión regular de equities).
+RANGE_FALLBACK_ORDEN = ["1d", "5d", "1mo"]
+
+
+def fetch_intraday_suficiente(
+    symbol: str,
+    interval: str = "5m",
+    range_: str = "1d",
+    min_velas: int = 30,
+    timeout: float = 10.0,
+    max_retries: int = 2,
+) -> pd.DataFrame:
+    """
+    Igual que `fetch_intraday`, pero si el rango solicitado no trae al
+    menos `min_velas` velas (p. ej. algunos futuros como MNQ=F, cuya
+    sesión de trading reportada por Yahoo en range="1d" es demasiado
+    corta), reintenta automáticamente con rangos progresivamente más
+    amplios (1d -> 5d -> 1mo) hasta conseguir suficientes velas.
+
+    Esto es un fallback TRANSPARENTE, no un parche silencioso: el
+    DataFrame devuelto expone en `df.attrs["range_solicitado"]` y
+    `df.attrs["range_usado"]` cuál rango se pidió originalmente y cuál
+    terminó usándose, para que el resto del sistema (y el frontend) lo
+    pueda comunicar al usuario en vez de ocultarlo.
+
+    Nunca inventa velas: si ni siquiera el rango más amplio alcanza
+    `min_velas`, devuelve igualmente el mejor DataFrame obtenido (el más
+    largo) — la validación final de `>=30 velas` sigue siendo
+    responsabilidad de `technical_engine.calcular_indicadores`.
+    """
+    rangos_a_probar = [range_]
+    for r in RANGE_FALLBACK_ORDEN:
+        if r not in rangos_a_probar:
+            rangos_a_probar.append(r)
+
+    mejor_df: Optional[pd.DataFrame] = None
+    mejor_rango = range_
+    ultimo_error: Optional[Exception] = None
+
+    for r in rangos_a_probar:
+        try:
+            df = fetch_intraday(symbol, interval=interval, range_=r, timeout=timeout, max_retries=max_retries)
+        except YahooFinanceError as exc:
+            ultimo_error = exc
+            continue
+        if mejor_df is None or len(df) > len(mejor_df):
+            mejor_df = df
+            mejor_rango = r
+        if len(df) >= min_velas:
+            break
+
+    if mejor_df is None:
+        raise ultimo_error or YahooFinanceError(
+            f"No se pudo obtener datos intradía reales para '{symbol}' con ningún rango de fallback."
+        )
+
+    mejor_df.attrs["range_solicitado"] = range_
+    mejor_df.attrs["range_usado"] = mejor_rango
+    return mejor_df
+
+
 def _parse_chart_payload(payload: dict, symbol: str) -> pd.DataFrame:
     chart = payload.get("chart", {})
     if chart.get("error"):

@@ -17,6 +17,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Barometer } from "@/components/ui/barometer"
 import { SymbolSearch, type SimboloSeleccionado } from "@/components/intraday/SymbolSearch"
+import { PriceChart } from "@/components/intraday/PriceChart"
 
 interface SeñalIndicadores {
   ema9: number
@@ -209,6 +210,9 @@ function AnalysisCard({ item }: { item: ResultadoItem }) {
       </CardHeader>
 
       <CardContent className="pt-4">
+        {/* --- Gráfico de precio real (velas + EMA9/EMA21 + volumen) --- */}
+        <PriceChart simbolo={d.simbolo} className="mb-4" />
+
         {/* --- Recomendación del agente causal + barómetro --- */}
         <div className="mb-4 flex flex-col items-center rounded-xl border border-border/60 bg-gradient-to-b from-muted/40 to-transparent py-4">
           <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
