@@ -15,3 +15,7 @@ algone/**/renv/library/
 
 # Runtime reports are written to ~/.claude/cache/tododeia (never the repo).
 # The dashboard/public/data/*.json files are committed demo fixtures.
+
+# market_agents (Python real-data intraday signal engine)
+market_agents/**/__pycache__/
+market_agents/**/*.pyc
