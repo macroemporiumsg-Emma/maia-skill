@@ -80,6 +80,56 @@ Esto permite:
 | `kernel-counterfactual` | 9006 | **Julia** (`HTTP.jl`) | 5: simulación `do(x)` | cálculo directo sobre DAG + posterior, `Distributions.jl` |
 | `orchestrator` | 8000 | Python (FastAPI) | 6-7: Pipe + Ecuación de Confluencia + webhook MT5 | — |
 
+> **Nota (VPS pendiente)**: `kernel-causal` (R), `kernel-bayes` (R) y
+> `kernel-counterfactual` (Julia) requieren una VPS con esos runtimes
+> instalados, que todavía no está disponible. Mientras tanto existe una
+> ruta **100% Python provisional** para no bloquear el desarrollo del
+> resto del pipeline — ver sección siguiente.
+
+## Ruta provisional 100% Python (mientras no hay VPS con R/Julia)
+
+Mientras la VPS con R (`pcalg`, `rstan`) y Julia no está disponible, se
+implementaron dos kernels **adicionales**, en Python puro, que respetan
+exactamente el mismo contrato HTTP (`GET /health`, `POST /run`, mismo
+`GenericRequest`/`GenericResponse` de `kernels/_shared/kernel_base.py`)
+y el mismo formato de `output` que sus contrapartes originales
+(`Paso2Output`, `Paso3Output` en `orchestrator/schemas.py`). El
+orquestador puede apuntar a estos kernels sin ningún cambio de código,
+solo cambiando la URL/puerto de destino.
+
+Los directorios `kernels/causal_r/` (código R real, completo) y
+`kernels/counterfactual_julia/` / `kernels/bayes_r/` (vacíos, nunca
+implementados) **se conservan intactos** como el camino "real" para
+cuando la VPS esté lista — esta ruta Python es explícitamente
+**provisional**, no un reemplazo definitivo.
+
+| Kernel provisional | Puerto | Sustituye a | Librería Python | Estado |
+|---|---|---|---|---|
+| `kernel-causal-py` (`kernels/causal_py`) | 9002 | `kernel-causal` (R + `pcalg`) | [`causal-learn`](https://github.com/py-why/causal-learn) — `PC()`, `FCI()`, `DirectLiNGAM` | ✅ implementado y probado (PC → FCI → LiNGAM) |
+| `kernel-bayes-py` (`kernels/bayes_py`) | 9003 | `kernel-bayes` (R + `rstan`, nunca implementado) | [`PyMC`](https://www.pymc.io/) + `arviz` — HBM (partial pooling) + NUTS | ✅ implementado y probado (HBM + NUTS + prob. de evento crítico) |
+| Paso 5 vía `pm.do()` (mismo `kernels/bayes_py`) | 9003 | `kernel-counterfactual` (Julia, nunca implementado) | `PyMC` — `pm.do()` para simulación `do(x)` | 🔜 pendiente |
+
+Notas técnicas relevantes de esta ruta provisional:
+- `kernel-causal-py` reproduce las 3 fases del kernel R (esqueleto PC,
+  PAG vía FCI con detección de posibles confusores ocultos, y orden
+  causal + pesos vía LiNGAM), devolviendo exactamente los mismos campos
+  que `Paso2Output`.
+- `kernel-bayes-py` construye un **Modelo Estructural Lineal Bayesiano
+  Jerárquico** directamente sobre el DAG del Paso 2: cada variable con
+  padres se modela como regresión lineal sobre ellos, y todos los
+  coeficientes (`beta_padre→hijo`) comparten un hiper-prior global común
+  (partial pooling), muestreado con NUTS (`pymc.sample`) — el mismo
+  algoritmo (HMC con adaptación de paso) que usaría `rstan`/`cmdstanr`.
+  Valida que el DAG de entrada sea acíclico (requisito de un modelo
+  estructural lineal) antes de construir el modelo.
+- Dependencias específicas documentadas en `algone/requirements.txt`
+  (`causal-learn`, `pymc`, `arviz`), separadas del resto del stack Python
+  del kernel-nlp/orquestador para dejar clara la naturaleza "añadida" de
+  esta ruta.
+- Ninguno de los kernels existentes (`kernel-nlp`, `causal_r/`,
+  `market_agents/server.py`) fue modificado para construir esta ruta:
+  son directorios y puertos completamente nuevos.
+
 ## Ecuación de Confluencia (Paso 7)
 
 El orquestador NUNCA declara alerta de "Régimen de Expansión de Volatilidad"

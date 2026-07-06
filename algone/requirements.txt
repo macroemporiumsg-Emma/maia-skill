@@ -1,0 +1,27 @@
+# ALGONE — dependencias Python de los kernels.
+#
+# Incluye:
+#   - kernel-nlp        (kernels/nlp)        -> FastAPI + uvicorn (siempre requerido)
+#   - kernel-causal-py  (kernels/causal_py)  -> sustituto PROVISIONAL de kernel-causal
+#                                                (R + pcalg) mientras no hay VPS con R
+#   - kernel-bayes-py   (kernels/bayes_py)   -> sustituto PROVISIONAL de kernel-bayes
+#                                                (R/rstan, nunca implementado) mientras
+#                                                no hay VPS
+#
+# Los kernels en R (kernels/causal_r) y Julia (kernels/counterfactual_julia)
+# NO dependen de este archivo: se documentan/instalan por separado y se
+# mantienen como el "camino real" cuando la VPS esté disponible. Ver
+# docs/ARCHITECTURE.md para el detalle de la estrategia provisional.
+
+fastapi==0.139.0
+uvicorn==0.50.0
+pydantic>=2.0
+
+numpy==2.3.5
+
+# kernel-causal-py: reemplazo de R/pcalg (PC, FCI, LiNGAM)
+causal-learn==0.1.4.7
+
+# kernel-bayes-py: reemplazo de R/rstan (HBM + NUTS)
+pymc==6.0.1
+arviz==1.2.0
