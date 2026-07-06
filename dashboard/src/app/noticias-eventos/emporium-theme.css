@@ -1,0 +1,155 @@
+/**
+ * Tema oscuro institucional de "Emporium Macro Analytics" (Proyecto: Bandonax
+ * IA), con ámbito (scope) exclusivo a `.emporium-theme` para no interferir
+ * con el tema claro global (`src/app/globals.css`) usado por el resto del
+ * dashboard (`/`, `/intraday`).
+ *
+ * Deliberadamente usamos variables con prefijo `--emp-` (en vez de
+ * sobreescribir `--background`, `--primary`, etc. de Tailwind v4) para evitar
+ * cualquier colisión con el `@theme inline` global. Los componentes de esta
+ * sección consumen estos tokens vía utilidades arbitrarias de Tailwind, p.ej.
+ * `bg-[var(--emp-card)]`.
+ */
+
+.emporium-theme {
+  color-scheme: dark;
+
+  --emp-background: #05070d;
+  --emp-surface: #0a0f1a;
+  --emp-card: #10182a;
+  --emp-card-hover: #141d33;
+  --emp-foreground: #e6ebf5;
+  --emp-muted-foreground: #8b93a7;
+  --emp-border: rgba(148, 163, 184, 0.14);
+  --emp-border-strong: rgba(148, 163, 184, 0.28);
+
+  --emp-primary: #14b8a6;
+  --emp-primary-foreground: #04120f;
+  --emp-secondary: #1a2438;
+
+  --emp-hawkish: #f43f5e;
+  --emp-dovish: #38bdf8;
+  --emp-success: #22c55e;
+  --emp-warning: #f59e0b;
+  --emp-destructive: #ef4444;
+  --emp-gold: #eab308;
+
+  --emp-shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  --emp-shadow-glow: 0 0 40px rgba(20, 184, 166, 0.18);
+
+  background-color: var(--emp-background);
+  color: var(--emp-foreground);
+  min-height: 100vh;
+  font-family: var(--emp-font-sans, "DM Sans", system-ui, sans-serif);
+}
+
+.emporium-theme .emp-mono {
+  font-family: var(--emp-font-mono, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Superficie "glass" — tarjetas translúcidas con blur, patrón institucional. */
+.emporium-theme .emp-glass {
+  background-color: color-mix(in srgb, var(--emp-card) 82%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--emp-border);
+  box-shadow: var(--emp-shadow-md);
+}
+
+.emporium-theme .emp-glass-surface {
+  background-color: color-mix(in srgb, var(--emp-secondary) 55%, transparent);
+  border: 1px solid var(--emp-border);
+}
+
+/* Scrollbars discretos, consistentes con la estética densa del panel. */
+.emporium-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.emporium-theme ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.emporium-theme ::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+.emporium-theme ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.4);
+}
+
+/* Ambient glow orbs de fondo (decorativos, no interactivos). */
+.emporium-theme .emp-ambient-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.emporium-theme .emp-ambient-glow::before,
+.emporium-theme .emp-ambient-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+}
+.emporium-theme .emp-ambient-glow::before {
+  top: -12rem;
+  right: -8rem;
+  width: 32rem;
+  height: 32rem;
+  background: color-mix(in srgb, var(--emp-primary) 12%, transparent);
+}
+.emporium-theme .emp-ambient-glow::after {
+  bottom: -14rem;
+  left: -10rem;
+  width: 36rem;
+  height: 36rem;
+  background: color-mix(in srgb, var(--emp-dovish) 8%, transparent);
+}
+
+/* Grid pattern sutil sobre el fondo, refuerza la estética "quant terminal". */
+.emporium-theme .emp-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* Marquee infinito del ticker FX LIVE (estilo Investing/Yahoo). */
+@keyframes emp-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.emporium-theme .emp-animate-marquee {
+  animation: emp-marquee 32s linear infinite;
+  will-change: transform;
+}
+.emporium-theme .emp-animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes emp-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.emporium-theme .emp-pulse-dot {
+  animation: emp-pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes emp-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.emporium-theme .emp-fade-in {
+  animation: emp-fade-in 0.4s ease-out forwards;
+}
+
+/* Respeta preferencia de movimiento reducido (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  .emporium-theme .emp-animate-marquee,
+  .emporium-theme .emp-pulse-dot,
+  .emporium-theme .emp-fade-in {
+    animation: none !important;
+  }
+}
