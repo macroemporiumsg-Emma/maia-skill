@@ -16,7 +16,8 @@ import * as React from "react"
 import { Activity, ChevronDown, Landmark, Waves } from "lucide-react"
 import { Accordion } from "@base-ui/react/accordion"
 import { QUANTITATIVE_CHANNELS } from "@/data/emporium/mockData"
-import { tensionBarColorClass, tensionColorClass } from "@/lib/emporium/format"
+import { VectorBar } from "@/components/emporium/VectorBar"
+import { tensionColorClass, tensionMarkerColorClass } from "@/lib/emporium/format"
 import { cn } from "@/lib/utils"
 import type { QuantChannelId } from "@/types/emporium"
 
@@ -54,7 +55,10 @@ function IndicatorRow({
   tension: number
   status: string
 }) {
-  const positive = tension < 40
+  // La tensión (0=calma .. 100=estrés máximo) se remapea a la escala
+  // bidireccional -100..100 de VectorBar: 50 (umbral moderado) queda en el
+  // centro de la barra, 0 en el extremo izquierdo, 100 en el extremo derecho.
+  const vectorValue = (tension - 50) * 2
 
   return (
     <div className="rounded-md border border-[var(--emp-border)] bg-[var(--emp-background)]/30 p-2.5">
@@ -62,20 +66,13 @@ function IndicatorRow({
         <span className="w-full max-w-[220px] shrink-0 text-xs font-medium text-[var(--emp-foreground)]">
           {label}
         </span>
-        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[var(--emp-secondary)]">
-          <div
-            className={cn("absolute inset-y-0 left-0 rounded-full", tensionBarColorClass(tension))}
-            style={{ width: `${Math.max(4, Math.min(100, tension))}%` }}
-          />
-        </div>
+        <VectorBar value={vectorValue} colorClass={tensionMarkerColorClass(tension)} thinThreshold={0} />
         <span className={cn("emp-mono w-10 shrink-0 text-right text-xs font-semibold", tensionColorClass(tension))}>
           {tension}
         </span>
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--emp-muted-foreground)]">{definition}</p>
-      <p className={cn("mt-1 text-[11px] font-medium", positive ? "text-emerald-400" : tensionColorClass(tension))}>
-        ● {status}
-      </p>
+      <p className={cn("mt-1 text-[11px] font-medium", tensionColorClass(tension))}>● {status}</p>
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { Bot, Send, Sparkles } from "lucide-react"
 import { EMPORIUM_NEWS } from "@/data/emporium/mockData"
 import { useEmporiumFilter, matchesCountryFilter } from "@/components/emporium/EmporiumContext"
 import { EmporiumGauge } from "@/components/emporium/EmporiumGauge"
+import { VectorBar } from "@/components/emporium/VectorBar"
 import { categoryLabel } from "@/lib/emporium/format"
 import { cn } from "@/lib/utils"
 
@@ -87,18 +88,11 @@ export function QualitativeSignals() {
             <p className="text-xs text-[var(--emp-muted-foreground)]">Sin datos para el filtro seleccionado.</p>
           )}
           {byCategory.map((row) => {
-            const pct = Math.min(100, Math.abs(row.score))
             const positive = row.score >= 0
             return (
               <div key={row.category} className="flex items-center gap-2.5">
                 <span className="w-32 shrink-0 text-xs text-[var(--emp-foreground)]">{categoryLabel(row.category)}</span>
-                <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[var(--emp-secondary)]">
-                  <div
-                    className={cn("absolute inset-y-0 rounded-full", positive ? "left-1/2 bg-emerald-500" : "right-1/2 bg-rose-500")}
-                    style={{ width: `${pct / 2}%` }}
-                  />
-                  <div className="absolute inset-y-0 left-1/2 w-px bg-[var(--emp-border-strong)]" />
-                </div>
+                <VectorBar value={row.score} />
                 <span className={cn("emp-mono w-10 text-right text-xs font-semibold", positive ? "text-emerald-400" : "text-rose-400")}>
                   {row.score > 0 ? "+" : ""}
                   {row.score}

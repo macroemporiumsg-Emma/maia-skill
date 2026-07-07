@@ -100,6 +100,13 @@ export function tensionBarColorClass(tension: number): string {
   return "bg-emerald-500"
 }
 
+/** Igual que `tensionBarColorClass`, pero con la tonalidad usada por `VectorBar` (marcador tipo píldora). */
+export function tensionMarkerColorClass(tension: number): string {
+  if (tension >= 65) return "bg-rose-400"
+  if (tension >= 40) return "bg-amber-400"
+  return "bg-emerald-400"
+}
+
 /** Tiempo relativo compacto ("hace 5m", "hace 2h"), útil para el stream de noticias. */
 export function relativeTime(iso: string, now: Date = new Date()): string {
   const then = new Date(iso).getTime()
