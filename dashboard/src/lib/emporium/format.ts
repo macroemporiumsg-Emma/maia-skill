@@ -87,6 +87,19 @@ export function categoryLabel(category: string): string {
   return labels[category] ?? category
 }
 
+/** Color de barra/texto para el nivel de tensión de un indicador cuantitativo (0..100). */
+export function tensionColorClass(tension: number): string {
+  if (tension >= 65) return "text-rose-400"
+  if (tension >= 40) return "text-amber-400"
+  return "text-emerald-400"
+}
+
+export function tensionBarColorClass(tension: number): string {
+  if (tension >= 65) return "bg-rose-500"
+  if (tension >= 40) return "bg-amber-500"
+  return "bg-emerald-500"
+}
+
 /** Tiempo relativo compacto ("hace 5m", "hace 2h"), útil para el stream de noticias. */
 export function relativeTime(iso: string, now: Date = new Date()): string {
   const then = new Date(iso).getTime()

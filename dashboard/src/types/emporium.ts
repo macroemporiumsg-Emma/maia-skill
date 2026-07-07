@@ -133,3 +133,31 @@ export interface FxTick {
   rate: number
   changePct: number
 }
+
+/**
+ * Indicadores Cuantitativos (Sub-módulo 1.3, bloque complementario a las
+ * Señales Cualitativas). Basado en el documento de referencia "Indicadores
+ * cuantitativos": tres canales de riesgo/volatilidad que alimentan el motor
+ * de normalización y el régimen ALGONE ONE.
+ */
+export type QuantChannelId = "macro" | "microstructure" | "credit_stress"
+
+export interface QuantitativeSubIndicator {
+  id: string
+  label: string
+  /** Definición analítica resumida (fuente: documento de referencia del canal). */
+  definition: string
+  /** Nivel de tensión estandarizado: -100 (calma/favorable) .. +100 (alerta/estrés). */
+  tension: number
+  /** Lectura cualitativa puntual del estado actual del indicador. */
+  status: string
+}
+
+export interface QuantitativeChannel {
+  id: QuantChannelId
+  label: string
+  description: string
+  /** Nivel de activación agregado del canal, 0..100. */
+  activationLevel: number
+  indicators: QuantitativeSubIndicator[]
+}

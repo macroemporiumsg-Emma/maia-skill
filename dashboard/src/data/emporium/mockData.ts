@@ -4,6 +4,7 @@ import type {
   EmporiumNewsItem,
   FxTick,
   MacroIndicator,
+  QuantitativeChannel,
   QuantumFeature,
 } from "@/types/emporium"
 
@@ -493,6 +494,119 @@ export const CROSS_REGIONAL_LINKS: CrossRegionalLink[] = [
     etfFlowM: -180,
     tedSpreadBps: 22,
     yieldCurveDeltaBps: 8,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Módulo 1.3 (bloque complementario): Indicadores Cuantitativos
+// ---------------------------------------------------------------------------
+// Fuente: documento de referencia "Indicadores cuantitativos" — tres canales
+// de riesgo/volatilidad (Macro, Microestructura, Estrés de Crédito) que
+// alimentan la capa de normalización del Súper Tratamiento causal:
+//   Indicador Normalizado = (Dato Real - Consenso) / Desviación Estándar Histórica
+// `tension`/`activationLevel` son valores representativos (mock) con la
+// forma correcta para validar diseño; el cálculo real vendrá del motor
+// ALGONE (Z-Score, Gamma exposure, CDS, etc.) en otra capa del proyecto.
+
+export const QUANTITATIVE_CHANNELS: QuantitativeChannel[] = [
+  {
+    id: "macro",
+    label: "Canal Macro (Sorpresas en Datos Duros)",
+    description:
+      "La volatilidad no nace del dato en sí, sino del desvío respecto al consenso (Z-Score). Una sorpresa macroeconómica obliga a los algoritmos institucionales a revalorar activos de forma masiva e instantánea.",
+    activationLevel: 62,
+    indicators: [
+      {
+        id: "q-macro-cpi",
+        label: "Z-Score del IPC / IPP (Inflación)",
+        definition:
+          "Mide cuántas desviaciones estándar se aleja la inflación real del pronóstico de los analistas. Sorpresas al alza disparan la volatilidad en renta fija y divisas.",
+        tension: 58,
+        status: "Sorpresa moderada al alza — presión sobre renta fija",
+      },
+      {
+        id: "q-macro-nfp",
+        label: "Sorpresa en Nóminas No Agrícolas (NFP — Empleo)",
+        definition:
+          "El indicador de mayor impacto histórico por minuto en los mercados de EE. UU. Desvíos fuertes alteran las expectativas de crecimiento.",
+        tension: 74,
+        status: "Desvío fuerte vs. consenso — alto impacto en curva USD",
+      },
+      {
+        id: "q-macro-pmi",
+        label: "PMI Flash (Manufacturero y de Servicios)",
+        definition:
+          "Al ser indicadores adelantados, un desvío cambia las expectativas de recesión o expansión antes de que se publiquen los datos del PIB corporativo.",
+        tension: 41,
+        status: "Divergencia moderada entre regiones desarrolladas",
+      },
+    ],
+  },
+  {
+    id: "microstructure",
+    label: "Canal de Microestructura (Liquidez de la Subasta)",
+    description:
+      "Rastrea el 'combustible' disponible en el mercado. Si este canal muestra debilidad, cualquier orden de venta o compra grande provocará saltos abruptos en el precio (Régimen de Alta Volatilidad).",
+    activationLevel: 45,
+    indicators: [
+      {
+        id: "q-micro-gamma",
+        label: "Exposición Gamma de los Creadores de Mercado (Gamma Exposure)",
+        definition:
+          "Gamma positiva actúa como amortiguador y consolida regímenes de baja volatilidad (calma). Gamma negativa obliga a los market makers a vender cuando el precio cae y a comprar cuando sube, acelerando la volatilidad de forma asimétrica (short squeezes o caídas libres).",
+        tension: 33,
+        status: "Gamma positiva neta — régimen de calma relativa",
+      },
+      {
+        id: "q-micro-volprofile",
+        label: "Volumen del Perfil de Mercado (Volume Profile / Order Book Imbalance)",
+        definition:
+          "Porcentaje de asimetría entre órdenes de compra (bids) y venta (asks) en los niveles clave de soporte y resistencia del libro de órdenes.",
+        tension: 52,
+        status: "Ligero desequilibrio hacia el lado vendedor",
+      },
+      {
+        id: "q-micro-etfflows",
+        label: "Ratios de Flujos de Fondos (ETF Inflows/Outflows)",
+        definition:
+          "Salidas masivas de capital institucional en ventanas de tiempo cortas drenan la liquidez de contrapartida.",
+        tension: 47,
+        status: "Flujos mixtos — sin drenaje significativo de liquidez",
+      },
+    ],
+  },
+  {
+    id: "credit_stress",
+    label: "Canal de Estrés de Crédito (Riesgo del Sistema)",
+    description:
+      "Mide la salud del sistema financiero interbancario. Es el indicador líder por excelencia para anticipar transiciones de regímenes bajos a regímenes macro de pánico (eventos de cola).",
+    activationLevel: 28,
+    indicators: [
+      {
+        id: "q-credit-cds",
+        label: "Spreads de CDS Soberanos y Bancarios",
+        definition:
+          "El costo de asegurar la deuda contra impagos. Si los CDS de los principales bancos globales o potencias económicas suben, la renta variable entra de inmediato en un régimen de aversión al riesgo (risk-off).",
+        tension: 24,
+        status: "Spreads contenidos — sin señales de estrés sistémico",
+      },
+      {
+        id: "q-credit-yieldcurve",
+        label: "Pendiente de la Curva de Rendimientos (10Y - 2Y)",
+        definition:
+          "La inversión de la curva alerta de tensiones estructurales a largo plazo. La desinversión abrupta (steepening) tras haber estado invertida es históricamente el catalizador real que detona el estallido de volatilidad bursátil.",
+        tension: 36,
+        status: "Curva ligeramente invertida — sin steepening abrupto aún",
+      },
+      {
+        id: "q-credit-ted",
+        label: "TED Spread (Libor/SOFR vs. Letras del Tesoro)",
+        definition:
+          "Mide el riesgo de crédito percibido entre bancos comerciales. Un diferencial alto indica desconfianza interbancaria, restringiendo el apalancamiento global.",
+        tension: 22,
+        status: "Diferencial bajo — confianza interbancaria estable",
+      },
+    ],
   },
 ]
 

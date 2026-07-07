@@ -24,6 +24,7 @@ import {
   MessageSquareText,
   Newspaper,
   Sigma,
+  Waves,
 } from "lucide-react"
 
 import { EmporiumFilterProvider } from "@/components/emporium/EmporiumContext"
@@ -32,6 +33,7 @@ import { EmporiumModuleShell } from "@/components/emporium/EmporiumModuleShell"
 import { CountryFilter } from "@/components/emporium/CountryFilter"
 import { NewsStream } from "@/components/emporium/NewsStream"
 import { QualitativeSignals } from "@/components/emporium/QualitativeSignals"
+import { QuantitativeSignals } from "@/components/emporium/QuantitativeSignals"
 import { MacroExecutiveSummary } from "@/components/emporium/MacroExecutiveSummary"
 import { MacroRelevanceMatrix } from "@/components/emporium/MacroRelevanceMatrix"
 import { CentralBankPanel } from "@/components/emporium/CentralBankPanel"
@@ -111,15 +113,27 @@ export default function NoticiasEventosPage() {
                   </EmporiumModuleShell>
                 </div>
 
-                <EmporiumModuleShell
-                  eyebrow="Sub-módulo 1.3"
-                  title="Señales Cualitativas"
-                  description="Barómetro de presión, vectores por categoría e interrogación en lenguaje natural (EMMA / NEXUS)."
-                  icon={<MessageSquareText className="h-3.5 w-3.5" />}
-                  actionLabel="Abrir laboratorio"
-                >
-                  <QualitativeSignals />
-                </EmporiumModuleShell>
+                <div className="flex flex-col gap-4">
+                  <EmporiumModuleShell
+                    eyebrow="Sub-módulo 1.3"
+                    title="Señales Cualitativas"
+                    description="Barómetro de presión, vectores por categoría e interrogación en lenguaje natural (EMMA / NEXUS)."
+                    icon={<MessageSquareText className="h-3.5 w-3.5" />}
+                    actionLabel="Abrir laboratorio"
+                  >
+                    <QualitativeSignals />
+                  </EmporiumModuleShell>
+
+                  <EmporiumModuleShell
+                    eyebrow="Sub-módulo 1.3"
+                    title="Indicadores Cuantitativos"
+                    description="Canales de Macro, Microestructura y Estrés de Crédito — insumos del motor de normalización causal."
+                    icon={<Waves className="h-3.5 w-3.5" />}
+                    actionLabel="Abrir laboratorio"
+                  >
+                    <QuantitativeSignals />
+                  </EmporiumModuleShell>
+                </div>
               </div>
             </section>
 
