@@ -5,7 +5,11 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self'${isDev ? " 'unsafe-eval'" : ""}`,
+  // Dev (Turbopack/Next RSC) injects inline <script> tags without a nonce
+  // to stream the React Server Components payload for hydration; without
+  // 'unsafe-inline' here those get blocked and the page never hydrates.
+  // Production keeps this locked down (no 'unsafe-inline'/'unsafe-eval').
+  `script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
   "style-src 'self' 'unsafe-inline'", // inline style={{}} (sector colors) + framer-motion
   "img-src 'self' data:",
   "font-src 'self' data:", // next/font self-hosts Geist; no external CDN

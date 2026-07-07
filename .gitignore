@@ -6,5 +6,16 @@ dashboard/.turbo/
 .env*.local
 *.log
 
+# ALGONE (Python/R/Julia kernels)
+algone/**/__pycache__/
+algone/**/*.pyc
+algone/.julia/
+algone/**/.Rproj.user/
+algone/**/renv/library/
+
 # Runtime reports are written to ~/.claude/cache/tododeia (never the repo).
 # The dashboard/public/data/*.json files are committed demo fixtures.
+
+# market_agents (Python real-data intraday signal engine)
+market_agents/**/__pycache__/
+market_agents/**/*.pyc
