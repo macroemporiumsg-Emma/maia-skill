@@ -9,7 +9,7 @@
  */
 import { cn } from "@/lib/utils"
 
-export type GaugePalette = "sentiment" | "hawkdove"
+export type GaugePalette = "sentiment" | "hawkdove" | "tension"
 
 interface EmporiumGaugeProps {
   /** Puntuación en el rango -100 .. 100. */
@@ -35,6 +35,13 @@ const PALETTES: Record<GaugePalette, { left: string; mid: string; right: string;
     right: "#f43f5e", // hawkish
     leftLabel: "DOVISH",
     rightLabel: "HAWKISH",
+  },
+  tension: {
+    left: "#22c55e", // calma
+    mid: "#f59e0b", // moderado
+    right: "#f43f5e", // estrés máximo
+    leftLabel: "CALMA",
+    rightLabel: "ESTRÉS",
   },
 }
 
